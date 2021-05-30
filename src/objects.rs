@@ -1,26 +1,26 @@
 use crate::vec3::Vec3;
 use crate::ray::Ray;
-use crate::material::Material;
+use crate::material::*;
 
-pub struct HitRecord<M: Material> {
+pub struct HitRecord {
     pub t: f64,
     pub p: Vec3,
     pub normal: Vec3,
-    pub material: M,
+    pub material: Material,
 }
 
-pub trait Hittable<M: Material> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord<M>) -> bool;
+pub trait Hittable {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
 }
 
-pub struct Sphere<M: Material> {
+pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
-    pub material: M,
+    pub material: Material,
 }
 
-impl<M: Material> Hittable<M> for Sphere<M> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord<M>) -> bool {
+impl Hittable for Sphere {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let oc = ray.origin().clone() - self.center.clone();
         let a = Vec3::dot(&ray.direction(), &ray.direction());
         let b = Vec3::dot(&oc, &ray.direction());
@@ -34,7 +34,7 @@ impl<M: Material> Hittable<M> for Sphere<M> {
                 rec.t = temp;
                 rec.p = ray.point_at_parameter(rec.t);
                 rec.normal = (rec.p - self.center.clone()) / self.radius;
-                rec.material = M::create(self.material.get_albedo());
+                rec.material = self.material.clone();
 
                 return true;
             }
@@ -45,7 +45,7 @@ impl<M: Material> Hittable<M> for Sphere<M> {
                 rec.t = temp;
                 rec.p = ray.point_at_parameter(rec.t);
                 rec.normal = (rec.p - self.center.clone()) / self.radius;
-                rec.material = M::create(self.material.get_albedo());
+                rec.material = self.material.clone();
 
                 return true;
             }
@@ -60,8 +60,8 @@ pub struct HittableList<T>
     pub list: Vec<T>
 }
 
-impl<T: Hittable<M>, M: Material> Hittable<M> for HittableList<T> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord<M>) -> bool {
+impl<T: Hittable> Hittable for HittableList<T> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let mut hit_anything = false;
         let mut closest_so_far = t_max;
 

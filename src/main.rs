@@ -30,12 +30,14 @@ fn random_in_unit_sphere() -> Vec3 {
     p
 }
 
-fn color<M: Material>(ray: &Ray, world: &HittableList<Sphere<M>>, depth: u32) -> Vec3 {
+fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32) -> Vec3 {
     let mut record = HitRecord {
         t: 0.0,
         p: Vec3::unit(0.0),
         normal: Vec3::unit(0.0),
-        material: M::create(Vec3::unit(0.0))
+        material: Material::Lambertian(Lambertian {
+            albedo: Vec3::unit(0.0)
+        })
     };
 
     if world.hit(ray, 0.001, f64::MAX, &mut record) {
@@ -86,31 +88,32 @@ fn main() {
             Sphere {
                 center: Vec3(0.0, 0.0, -1.0),
                 radius: 0.5,
-                material: Lambertian {
+                material: Material::Lambertian(Lambertian {
                     albedo: Vec3(0.8, 0.3, 0.3)
-                }
+                })
             },
             Sphere {
                 center: Vec3(0.0, -100.5, -1.0),
                 radius: 100.0,
-                material: Lambertian {
+                material: Material::Lambertian(Lambertian {
                     albedo: Vec3(0.8, 0.8, 0.0)
-                }
+                })
             },
-            // Box::new(Sphere {
-            //     center: Vec3(1.0, 0.0, -1.0),
-            //     radius: 0.5,
-            //     material: Metal {
-            //         albedo: Vec3(0.8, 0.6, 0.2)
-            //     }
-            // }),
-            // Box::new(Sphere {
-            //     center: Vec3(-1.0, 0.0, -1.0),
-            //     radius: 100.0,
-            //     material: Metal {
-            //         albedo: Vec3(0.8, 0.8, 0.8)
-            //     }
-            // }),
+            Sphere {
+                center: Vec3(1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: Material::Metal(Metal {
+                    albedo: Vec3(0.8, 0.6, 0.2),
+                    fuzz: 0.2
+                })
+            },
+            Sphere {
+                center: Vec3(-1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: Material::Dielectric(Dielectric {
+                    ref_idx: 1.5
+                })
+            },
         ]
     };
 
