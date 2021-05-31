@@ -114,6 +114,13 @@ fn main() {
                     ref_idx: 1.5
                 })
             },
+            Sphere {
+                center: Vec3(-1.0, 0.0, -1.0),
+                radius: -0.45,
+                material: Material::Dielectric(Dielectric {
+                    ref_idx: 1.5
+                })
+            },
         ]
     };
 

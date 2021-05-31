@@ -83,7 +83,7 @@ impl Dielectric {
         let outward_normal: Vec3;
         let reflected = reflect(ray_in.direction(), &record.normal);
         let ni_over_nt: f64;
-        let mut refracted = Vec3::unit(255.0);
+        let mut refracted = Vec3::unit(0.0);
         let reflect_prod: f64;
         let cos: f64;
 
@@ -106,9 +106,9 @@ impl Dielectric {
         }
 
         if rand::thread_rng().gen_range(0.0..1.0) < reflect_prod {
-            *scattered = Ray { a: record.p, b: refracted };
-        } else {
             *scattered = Ray { a: record.p, b: reflected };
+        } else {
+            *scattered = Ray { a: record.p, b: refracted };
         }
 
         true
