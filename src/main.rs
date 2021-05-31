@@ -124,7 +124,13 @@ fn main() {
         ]
     };
 
-    let camera = Camera::default();
+    let camera = Camera::new(
+        Vec3(-2.0, 2.0, 1.0),
+        Vec3(0.0, 0.0, 1.0),
+        Vec3(0.0, 1.0, 0.0),
+        130.0,
+        xn as f64 / yn as f64
+    );
 
     for j in (0..yn).rev() {
         for i in 0..xn {
