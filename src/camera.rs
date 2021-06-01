@@ -24,7 +24,6 @@ pub struct Camera {
     origin: Vec3,
     u: Vec3,
     v: Vec3,
-    w: Vec3,
     lens_radius: f64,
 }
 
@@ -59,7 +58,7 @@ impl Camera {
             vertical: 2.0 * half_vertical,
             origin: look_from,
             lens_radius: aperture / 2.0,
-            u, v, w,
+            u, v,
         }
     }
 

@@ -70,70 +70,113 @@ fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32) -> Vec3 {
     }
 }
 
+fn get_random_scene() -> HittableList<Sphere> {
+    let mut rng = rand::thread_rng();
+
+    let mut list = vec![
+        Sphere {
+            center: Vec3(0., -1000., 0.),
+            radius: 1000.,
+            material: Material::Lambertian(Lambertian {
+                albedo: Vec3(0.5, 0.5, 0.5)
+            })
+        },
+    ];
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = rng.gen_range(0.0..1.0);
+            let radius = rng.gen_range(0.1..0.3);
+            let center = Vec3(
+                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
+                radius,
+                b as f64 + 0.9 * rng.gen_range(0.0..1.0)
+            );
+
+            let material;
+
+            if (center - Vec3(4., 0.2, 0.)).length() > 0.9 {
+                if choose_mat < 0.5 {
+                    material = Material::Lambertian(Lambertian {
+                        albedo: Vec3(
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
+                        ),
+                    });
+                } else if choose_mat < 0.8 {
+                    material = Material::Metal(Metal {
+                        albedo: Vec3(
+                            0.5 * rng.gen_range(1.0..4.0),
+                            0.5 * rng.gen_range(1.0..4.0),
+                            0.5 * rng.gen_range(1.0..4.0),
+                        ),
+                        fuzz: rng.gen_range(0.0..0.5)
+                    });
+                } else {
+                    material = Material::Dielectric(Dielectric {
+                        ref_idx: 1.5
+                    });
+                }
+
+                list.push(Sphere { center, radius, material });
+            }
+        }
+    }
+
+    list.push(Sphere {
+        center: Vec3(0., 1., 0.),
+        radius: 1.,
+        material: Material::Dielectric(Dielectric {
+            ref_idx: 1.5
+        })
+    });
+
+    list.push(Sphere {
+        center: Vec3(4., 1., 0.),
+        radius: 1.,
+        material: Material::Lambertian(Lambertian {
+            albedo: Vec3(0.4, 0.2, 0.1)
+        })
+    });
+
+    list.push(Sphere {
+        center: Vec3(-4., 1., 0.),
+        radius: 1.,
+        material: Material::Metal(Metal {
+            albedo: Vec3(0.7, 0.6, 0.5),
+            fuzz: 0.0
+        })
+    });
+
+    HittableList { list }
+}
+
 fn main() {
     let path = Path::new("img.ppm");
     let file = File::create(&path).expect("Err create file");
     let mut rng = rand::thread_rng();
 
-    let xn = 200;
-    let yn = 100;
-    let sn = 100;
+    let xn = 600;
+    let yn = 300;
+    let sn = 200;
 
     write!(&file, "P3\n{} {}\n255\n", xn, yn).expect("Err writing header");
 
     let max_color = 255.99;
 
-    let world = HittableList {
-        list: vec![
-            Sphere {
-                center: Vec3(0.0, 0.0, -1.0),
-                radius: 0.5,
-                material: Material::Lambertian(Lambertian {
-                    albedo: Vec3(0.8, 0.3, 0.3)
-                })
-            },
-            Sphere {
-                center: Vec3(0.0, -100.5, -1.0),
-                radius: 100.0,
-                material: Material::Lambertian(Lambertian {
-                    albedo: Vec3(0.8, 0.8, 0.0)
-                })
-            },
-            Sphere {
-                center: Vec3(1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: Material::Metal(Metal {
-                    albedo: Vec3(0.8, 0.6, 0.2),
-                    fuzz: 0.2
-                })
-            },
-            Sphere {
-                center: Vec3(-1.0, 0.0, -1.0),
-                radius: 0.5,
-                material: Material::Dielectric(Dielectric {
-                    ref_idx: 1.5
-                })
-            },
-            Sphere {
-                center: Vec3(-1.0, 0.0, -1.0),
-                radius: -0.45,
-                material: Material::Dielectric(Dielectric {
-                    ref_idx: 1.5
-                })
-            },
-        ]
-    };
+    let world = get_random_scene();
 
-    let look_from = Vec3(3.0, 3.0, 2.0);
-    let look_at = Vec3(0.0, 0.0, -1.0);
+    let look_from = Vec3(-14.0, 2.0, -4.0);
+    let look_at = Vec3(-4., 1., 0.);
 
     let camera = Camera::new(
         look_from,
         look_at,
         Vec3(0.0, 1.0, 0.0),
-        20.0,
+        15.0,
         xn as f64 / yn as f64,
-        2.0,
+        0.15,
         (look_from - look_at).length()
     );
 
