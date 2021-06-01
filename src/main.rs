@@ -31,31 +31,11 @@ fn random_in_unit_sphere() -> Vec3 {
 }
 
 fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32) -> Vec3 {
-    let mut record = HitRecord {
-        t: 0.0,
-        p: Vec3::unit(0.0),
-        normal: Vec3::unit(0.0),
-        material: Material::Lambertian(Lambertian {
-            albedo: Vec3::unit(0.0)
-        })
-    };
-
-    if world.hit(ray, 0.001, f64::MAX, &mut record) {
-        let mut scattered = Ray {
-            a: Vec3::unit(0.0),
-            b: Vec3::unit(0.0)
-        };
-
-        let mut attenuation = Vec3::unit(0.0);
-
-        let scatters = record.material.scatter(
+    if let Some(record) = world.hit(ray, 0.001, f64::MAX) {
+        let (attenuation, scattered, scatters) = record.material.scatter(
             ray,
             &record,
-            &mut attenuation,
-            &mut scattered
         );
-
-        //println!("{:?}", attenuation);
 
         if depth < 50 && scatters {
             attenuation * color(&scattered, world, depth + 1)
@@ -66,7 +46,7 @@ fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32) -> Vec3 {
         let unit_direction = Vec3::unit_vector(ray.direction().clone());
         let t = 0.5 * (unit_direction.y() + 1.0);
 
-        (1.0 - t) * Vec3::unit(1.0) + t * Vec3(0.5, 0.7, 1.0)
+        Vec3::unit(1.0 - t) + t * Vec3(0.5, 0.7, 1.0)
     }
 }
 
@@ -157,9 +137,9 @@ fn main() {
     let file = File::create(&path).expect("Err create file");
     let mut rng = rand::thread_rng();
 
-    let xn = 600;
-    let yn = 300;
-    let sn = 200;
+    let xn = 200;
+    let yn = 100;
+    let sn = 10;
 
     write!(&file, "P3\n{} {}\n255\n", xn, yn).expect("Err writing header");
 

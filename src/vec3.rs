@@ -5,7 +5,7 @@ pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl Vec3 {
     pub fn squared_length(&self) -> f64 {
-        self.0 * self.0 + self.1 * self.1 + self.2 * self.2
+        self.0.powi(2) + self.1.powi(2) + self.2.powi(2)
     }
 
     pub fn length(&self) -> f64 {
@@ -38,7 +38,7 @@ impl Vec3 {
         )
     }
 
-    pub fn sqrt(&self) -> Self {
+    pub fn sqrt(self) -> Self {
         Vec3(
             self.0.sqrt(),
             self.1.sqrt(),
@@ -46,29 +46,13 @@ impl Vec3 {
         )
     }
 
-    pub fn x(&self) -> f64 {
-        self.0
-    }
+    pub fn x(&self) -> f64 { self.0 }
+    pub fn y(&self) -> f64 { self.1 }
+    pub fn z(&self) -> f64 { self.2 }
 
-    pub fn y(&self) -> f64 {
-        self.1
-    }
-
-    pub fn z(&self) -> f64 {
-        self.2
-    }
-
-    pub fn r(&self) -> f64 {
-        self.0
-    }
-
-    pub fn g(&self) -> f64 {
-        self.1
-    }
-
-    pub fn b(&self) -> f64 {
-        self.2
-    }
+    pub fn r(&self) -> f64 { self.0 }
+    pub fn g(&self) -> f64 { self.1 }
+    pub fn b(&self) -> f64 { self.2 }
 }
 
 impl Display for Vec3 {
