@@ -3,6 +3,7 @@ use crate::ray::Ray;
 use crate::objects::*;
 use crate::random_in_unit_sphere;
 use rand::Rng;
+use rand::prelude::ThreadRng;
 
 fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
     v.clone() - 2.0 * Vec3::dot(v,n) * n.clone()
@@ -31,8 +32,8 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-    fn scatter(&self, record: &HitRecord) -> (Vec3, Ray, bool) {
-        let target = record.p + record.normal + random_in_unit_sphere();
+    fn scatter(&self, record: &HitRecord, rng: &mut ThreadRng) -> (Vec3, Ray, bool) {
+        let target = record.p + record.normal + random_in_unit_sphere(rng);
 
         let scattered = Ray {
             a: record.p,
@@ -52,7 +53,7 @@ pub struct Metal {
 }
 
 impl Metal {
-    fn scatter(&self, ray_in: &Ray, record: &HitRecord) -> (Vec3, Ray, bool) {
+    fn scatter(&self, ray_in: &Ray, record: &HitRecord, rng: &mut ThreadRng) -> (Vec3, Ray, bool) {
         let reflected = reflect(
             &Vec3::unit_vector(ray_in.direction().clone()),
             &record.normal
@@ -62,7 +63,7 @@ impl Metal {
 
         let scattered = Ray {
             a: record.p,
-            b: reflected + fuzz * random_in_unit_sphere()
+            b: reflected + fuzz * random_in_unit_sphere(rng)
         };
 
         let attenuation = self.albedo;
@@ -79,7 +80,7 @@ pub struct Dielectric {
 }
 
 impl Dielectric {
-    fn scatter(&self, ray_in: &Ray, record: &HitRecord) -> (Vec3, Ray, bool) {
+    fn scatter(&self, ray_in: &Ray, record: &HitRecord, rng: &mut ThreadRng) -> (Vec3, Ray, bool) {
         let outward_normal: Vec3;
         let reflected = reflect(ray_in.direction(), &record.normal);
         let ni_over_nt: f64;
@@ -99,7 +100,7 @@ impl Dielectric {
             Some(refracted) => {
                 let reflect_prod = schlick(cos, self.ref_idx);
 
-                if rand::thread_rng().gen_range(0.0..1.0) < reflect_prod {
+                if rng.gen_range(0.0..1.0) < reflect_prod {
                     reflected
                 } else {
                     refracted
@@ -123,11 +124,11 @@ pub enum Material {
 }
 
 impl Material {
-    pub fn scatter(&self, ray_in: &Ray, record: &HitRecord) -> (Vec3, Ray, bool) {
+    pub fn scatter(&self, ray_in: &Ray, record: &HitRecord, rng: &mut ThreadRng) -> (Vec3, Ray, bool) {
         match self {
-            Self::Metal(m) => m.scatter(ray_in, record),
-            Self::Lambertian(m) => m.scatter(record),
-            Self::Dielectric(m) => m.scatter(ray_in, record),
+            Self::Metal(m) => m.scatter(ray_in, record, rng),
+            Self::Lambertian(m) => m.scatter(record, rng),
+            Self::Dielectric(m) => m.scatter(ray_in, record, rng),
         }
     }
 }

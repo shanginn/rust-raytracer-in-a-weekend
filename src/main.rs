@@ -7,16 +7,16 @@ mod material;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use rand::prelude::*;
 
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::camera::Camera;
 use crate::objects::*;
 use crate::material::*;
+use rand::Rng;
+use rand::prelude::ThreadRng;
 
-fn random_in_unit_sphere() -> Vec3 {
-    let mut rng = rand::thread_rng();
+fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3 {
     let mut p = Vec3::unit(1.0);
 
     while p.squared_length() >= 1.0 {
@@ -30,29 +30,7 @@ fn random_in_unit_sphere() -> Vec3 {
     p
 }
 
-fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32) -> Vec3 {
-    if let Some(record) = world.hit(ray, 0.001, f64::MAX) {
-        let (attenuation, scattered, scatters) = record.material.scatter(
-            ray,
-            &record,
-        );
-
-        if depth < 50 && scatters {
-            attenuation * color(&scattered, world, depth + 1)
-        } else {
-            Vec3::unit(0.0)
-        }
-    } else {
-        let unit_direction = Vec3::unit_vector(ray.direction().clone());
-        let t = 0.5 * (unit_direction.y() + 1.0);
-
-        Vec3::unit(1.0 - t) + t * Vec3(0.5, 0.7, 1.0)
-    }
-}
-
-fn get_random_scene() -> HittableList<Sphere> {
-    let mut rng = rand::thread_rng();
-
+fn get_random_scene(rng: &mut ThreadRng) -> HittableList<Sphere> {
     let mut list = vec![
         Sphere {
             center: Vec3(0., -1000., 0.),
@@ -132,20 +110,41 @@ fn get_random_scene() -> HittableList<Sphere> {
     HittableList { list }
 }
 
+pub fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32, rng: &mut ThreadRng) -> Vec3 {
+    if let Some(record) = world.hit(ray, 0.001, f64::MAX) {
+        let (attenuation, scattered, scatters) = record.material.scatter(
+            ray,
+            &record,
+            rng
+        );
+
+        if depth < 50 && scatters {
+            attenuation * color(&scattered, world, depth + 1, rng)
+        } else {
+            Vec3::unit(0.0)
+        }
+    } else {
+        let unit_direction = Vec3::unit_vector(ray.direction().clone());
+        let t = 0.5 * (unit_direction.y() + 1.0);
+
+        Vec3::unit(1.0 - t) + t * Vec3(0.5, 0.7, 1.0)
+    }
+}
+
 fn main() {
     let path = Path::new("img.ppm");
     let file = File::create(&path).expect("Err create file");
     let mut rng = rand::thread_rng();
 
-    let xn = 200;
-    let yn = 100;
+    let xn = 80;
+    let yn = 40;
     let sn = 10;
 
     write!(&file, "P3\n{} {}\n255\n", xn, yn).expect("Err writing header");
 
     let max_color = 255.99;
 
-    let world = get_random_scene();
+    let world = get_random_scene(&mut rng);
 
     let look_from = Vec3(-14.0, 2.0, -4.0);
     let look_at = Vec3(-4., 1., 0.);
@@ -166,11 +165,11 @@ fn main() {
             for _s in 0..sn {
                 let u = (i as f64 + rng.gen_range(0.0..1.0)) / xn as f64;
                 let v = (j as f64 + rng.gen_range(0.0..1.0)) / yn as f64;
-                let r = camera.get_ray(u, v);
+                let r = camera.get_ray(u, v, &mut rng);
 
                 let _p = r.point_at_parameter(2.0);
 
-                col += color(&r, &world, 0);
+                col += color(&r, &world, 0, &mut rng);
             }
 
             col = (col / sn as f64).sqrt();

@@ -1,21 +1,7 @@
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use rand::Rng;
-
-pub fn random_in_unit_disk() -> Vec3 {
-    let mut rng = rand::thread_rng();
-    let mut p = Vec3::unit(1.0);
-
-    while Vec3::dot(&p, &p) >= 1.0 {
-        p = 2.0 * Vec3(
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-            0.0,
-        ) - Vec3(1.0, 1.0, 0.0)
-    }
-
-    p
-}
+use rand::prelude::ThreadRng;
 
 pub struct Camera {
     lower_left_corner: Vec3,
@@ -62,8 +48,8 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, s: f64, t: f64) -> Ray {
-        let rd = self.lens_radius * random_in_unit_disk();
+    pub fn get_ray(&self, s: f64, t: f64, rng: &mut ThreadRng) -> Ray {
+        let rd = self.lens_radius * Self::random_in_unit_disk(rng);
         let offset = self.u * rd.x() + self.v * rd.y();
 
         let a = self.origin + offset;
@@ -75,5 +61,19 @@ impl Camera {
                 + t * self.vertical
                 - a
         }
+    }
+
+    fn random_in_unit_disk(rng: &mut ThreadRng) -> Vec3 {
+        let mut p = Vec3::unit(1.0);
+
+        while Vec3::dot(&p, &p) >= 1.0 {
+            p = 2.0 * Vec3(
+                rng.gen_range(0.0..1.0),
+                rng.gen_range(0.0..1.0),
+                0.0,
+            ) - Vec3(1.0, 1.0, 0.0)
+        }
+
+        p
     }
 }

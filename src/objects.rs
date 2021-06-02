@@ -33,7 +33,7 @@ impl Hittable for Sphere {
         if discriminant > 0.0 {
             let temp = (-b - discriminant_sqrt) / a;
 
-            if temp < t_max && temp > t_min {
+            if t_max > temp && temp > t_min {
                 let point = ray.point_at_parameter(temp);
 
                 return Some(HitRecord {
@@ -46,7 +46,7 @@ impl Hittable for Sphere {
 
             let temp = (-b + discriminant_sqrt) / a;
 
-            if temp < t_max && temp > t_min {
+            if t_max > temp && temp > t_min {
                 let point = ray.point_at_parameter(temp);
 
                 return Some(HitRecord {
