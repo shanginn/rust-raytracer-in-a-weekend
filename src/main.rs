@@ -133,9 +133,9 @@ pub fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32, rng: &mut Thre
 }
 
 const WIDTH: usize = 800;
-const HEIGHT: usize = 300;
-const RAYS: usize = 100;
-const THREADS: usize = 10;
+const HEIGHT: usize = 400;
+const RAYS: usize = 400;
+const THREADS: usize = 12;
 
 fn main() {
     let path = Path::new("img.ppm");
@@ -160,41 +160,38 @@ fn main() {
         (look_from - look_at).length()
     );
 
-    let mut buffers: [Vec<Vec3>; THREADS] = [vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![]];
+    let mut img: [Vec3; WIDTH * HEIGHT] = [Vec3::unit(0.0); WIDTH * HEIGHT];
+
+    let chunk_size = img.len() / THREADS;
 
     crossbeam::scope(|scope| {
-        for (buf_index, buf) in buffers.iter_mut().enumerate() {
+        for (chunk_index, pixels_chunk) in img.chunks_mut(chunk_size).enumerate() {
             let w = &world;
             let c = &camera;
 
             scope.spawn(move |_| {
                 let mut rng = rand::thread_rng();
-                let chunk = HEIGHT / THREADS;
+                for (pixel_index, pixel) in pixels_chunk.iter_mut().enumerate() {
+                    let position = pixel_index + (chunk_index * chunk_size);
+                    let x = position % WIDTH;
+                    let y = HEIGHT - position / WIDTH;
 
-                for j in (0..chunk).rev() {
-                    for i in 0..WIDTH {
-                        // println!("{} {} {}", buf_index, j, (j + (buf_index * chunk)));
-                        let mut col = Vec3::unit(0.0);
-                        for _ in 0..RAYS {
-                            let u = (i as f64 + rng.gen_range(0.0..1.0)) / WIDTH as f64;
-                            let v = ((j + (buf_index * chunk)) as f64 + rng.gen_range(0.0..1.0)) / HEIGHT as f64;
-                            let r = c.get_ray(u, v, &mut rng);
+                    let mut col = Vec3::unit(0.0);
+                    for _ in 0..RAYS {
+                        let u = (x as f64 + rng.gen_range(0.0..1.0)) / WIDTH as f64;
+                        let v = (y as f64 + rng.gen_range(0.0..1.0)) / HEIGHT as f64;
+                        let r = c.get_ray(u, v, &mut rng);
 
-                            col += color(&r, w, 0, &mut rng);
-                        }
-
-                        col = (col / RAYS as f64).sqrt();
-
-                        buf.push(col);
+                        col += color(&r, w, 0, &mut rng);
                     }
+
+                    *pixel = (col / RAYS as f64).sqrt();
                 }
             });
         }
     }).unwrap();
 
-    for b in buffers.iter().rev() {
-        for v in b {
-            writeln!(&file, "{}", *v * max_color).expect("Error writing line");
-        }
+    for b in img.iter() {
+        writeln!(&file, "{}", *b * max_color).expect("Error writing line");
     }
 }
