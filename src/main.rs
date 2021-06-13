@@ -3,150 +3,22 @@ mod ray;
 mod camera;
 mod objects;
 mod material;
+mod scene;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
 use crate::vec3::Vec3;
-use crate::ray::Ray;
 use crate::camera::Camera;
-use crate::objects::*;
-use crate::material::*;
-use rand::Rng;
-use rand::prelude::ThreadRng;
+use crate::scene::*;
 
-fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3 {
-    let mut p = Vec3::unit(1.0);
-
-    while p.squared_length() >= 1.0 {
-        p = 2.0 * Vec3(
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-        ) - Vec3::unit(1.0)
-    }
-
-    p
-}
-
-fn get_random_scene() -> HittableList<Sphere> {
-    let mut rng = rand::thread_rng();
-    let mut list = vec![
-        Sphere {
-            center: Vec3(0., -1000., 0.),
-            radius: 1000.,
-            material: Material::Lambertian(Lambertian {
-                albedo: Vec3(0.5, 0.5, 0.5)
-            })
-        },
-    ];
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = rng.gen_range(0.0..1.0);
-            let radius = rng.gen_range(0.1..0.3);
-            let center = Vec3(
-                a as f64 + 0.9 * rng.gen_range(0.0..1.0),
-                radius,
-                b as f64 + 0.9 * rng.gen_range(0.0..1.0)
-            );
-
-            let material;
-
-            if (center - Vec3(4., 0.2, 0.)).length() > 0.9 {
-                if choose_mat < 0.5 {
-                    material = Material::Lambertian(Lambertian {
-                        albedo: Vec3(
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                            rng.gen_range(0.0..1.0) * rng.gen_range(0.0..1.0),
-                        ),
-                    });
-                } else if choose_mat < 0.8 {
-                    material = Material::Metal(Metal {
-                        albedo: Vec3(
-                            0.5 * rng.gen_range(1.0..4.0),
-                            0.5 * rng.gen_range(1.0..4.0),
-                            0.5 * rng.gen_range(1.0..4.0),
-                        ),
-                        fuzz: rng.gen_range(0.0..0.5)
-                    });
-                } else {
-                    material = Material::Dielectric(Dielectric {
-                        ref_idx: 1.5
-                    });
-                }
-
-                list.push(Sphere { center, radius, material });
-            }
-        }
-    }
-
-    list.push(Sphere {
-        center: Vec3(0., 1., 0.),
-        radius: 1.,
-        material: Material::Dielectric(Dielectric {
-            ref_idx: 1.5
-        })
-    });
-
-    list.push(Sphere {
-        center: Vec3(4., 1., 0.),
-        radius: 1.,
-        material: Material::Lambertian(Lambertian {
-            albedo: Vec3(0.4, 0.2, 0.1)
-        })
-    });
-
-    list.push(Sphere {
-        center: Vec3(-4., 1., 0.),
-        radius: 1.,
-        material: Material::Metal(Metal {
-            albedo: Vec3(0.7, 0.6, 0.5),
-            fuzz: 0.0
-        })
-    });
-
-    HittableList { list }
-}
-
-pub fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32, rng: &mut ThreadRng) -> Vec3 {
-    if let Some(record) = world.hit(ray, 0.001, f64::MAX) {
-        let (attenuation, scattered, scatters) = record.material.scatter(
-            ray,
-            &record,
-            rng
-        );
-
-        if depth < 50 && scatters {
-            attenuation * color(&scattered, world, depth + 1, rng)
-        } else {
-            Vec3::unit(0.0)
-        }
-    } else {
-        let unit_direction = Vec3::unit_vector(ray.direction().clone());
-        let t = 0.5 * (unit_direction.y() + 1.0);
-
-        Vec3::unit(1.0 - t) + t * Vec3(0.5, 0.7, 1.0)
-    }
-}
-
-const WIDTH: usize = 800;
-const HEIGHT: usize = 400;
-const RAYS: usize = 400;
+const WIDTH: usize = 1000;
+const HEIGHT: usize = 600;
+const RAYS: usize = 300;
 const THREADS: usize = 12;
 
 fn main() {
-    let path = Path::new("img.ppm");
-    let file = File::create(&path).expect("Err create file");
-
-    write!(&file, "P3\n{} {}\n255\n", WIDTH, HEIGHT).expect("Err writing header");
-
-    let max_color = 255.99;
-
-    let world = get_random_scene();
-
     let look_from = Vec3(-14.0, 2.0, -4.0);
     let look_at = Vec3(-4., 1., 0.);
 
@@ -160,38 +32,28 @@ fn main() {
         (look_from - look_at).length()
     );
 
-    let mut img: [Vec3; WIDTH * HEIGHT] = [Vec3::unit(0.0); WIDTH * HEIGHT];
+    let world = get_random_scene();
 
-    let chunk_size = img.len() / THREADS;
+    let img = render(
+        WIDTH,
+        HEIGHT,
+        THREADS,
+        RAYS,
+        world,
+        camera
+    );
 
-    crossbeam::scope(|scope| {
-        for (chunk_index, pixels_chunk) in img.chunks_mut(chunk_size).enumerate() {
-            let w = &world;
-            let c = &camera;
+    let path = Path::new("img.ppm");
 
-            scope.spawn(move |_| {
-                let mut rng = rand::thread_rng();
-                for (pixel_index, pixel) in pixels_chunk.iter_mut().enumerate() {
-                    let position = pixel_index + (chunk_index * chunk_size);
-                    let x = position % WIDTH;
-                    let y = HEIGHT - position / WIDTH;
+    write_file(path, img);
+}
 
-                    let mut col = Vec3::unit(0.0);
-                    for _ in 0..RAYS {
-                        let u = (x as f64 + rng.gen_range(0.0..1.0)) / WIDTH as f64;
-                        let v = (y as f64 + rng.gen_range(0.0..1.0)) / HEIGHT as f64;
-                        let r = c.get_ray(u, v, &mut rng);
+fn write_file(path: &Path, img: Vec<Vec3>) {
+    let file = File::create(&path).expect("Err create file");
 
-                        col += color(&r, w, 0, &mut rng);
-                    }
+    write!(&file, "P3\n{} {}\n255\n", WIDTH, HEIGHT).expect("Err writing header");
 
-                    *pixel = (col / RAYS as f64).sqrt();
-                }
-            });
-        }
-    }).unwrap();
-
-    for b in img.iter() {
-        writeln!(&file, "{}", *b * max_color).expect("Error writing line");
+    for pixel in img.iter() {
+        writeln!(&file, "{}", *pixel * 255.99).expect("Error writing line");
     }
 }

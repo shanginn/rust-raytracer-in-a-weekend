@@ -1,7 +1,6 @@
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::objects::*;
-use crate::random_in_unit_sphere;
 use rand::Rng;
 use rand::prelude::ThreadRng;
 
@@ -20,10 +19,24 @@ fn refract(v: &Vec3, n: &Vec3, ni_over_nt: f64) -> Option<Vec3> {
     }
 }
 
-pub fn schlick (cos: f64, ref_idx: f64) -> f64 {
+fn schlick (cos: f64, ref_idx: f64) -> f64 {
     let r0 = ((1. - ref_idx) / (1. + ref_idx)).powi(2);
 
     r0 + (1. - r0) * (1. - cos).powi(5)
+}
+
+fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3 {
+    let mut p = Vec3::unit(1.0);
+
+    while p.squared_length() >= 1.0 {
+        p = 2.0 * Vec3(
+            rng.gen_range(0.0..1.0),
+            rng.gen_range(0.0..1.0),
+            rng.gen_range(0.0..1.0),
+        ) - Vec3::unit(1.0)
+    }
+
+    p
 }
 
 #[derive(Clone)]
