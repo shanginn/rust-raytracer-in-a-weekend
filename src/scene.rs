@@ -101,7 +101,7 @@ fn color(ray: &Ray, world: &HittableList<Sphere>, depth: u32, rng: &mut ThreadRn
             Vec3::unit(0.0)
         }
     } else {
-        let unit_direction = Vec3::unit_vector(ray.direction().clone());
+        let unit_direction = Vec3::unit_vector(*ray.direction());
         let t = 0.5 * (unit_direction.y() + 1.0);
 
         Vec3::unit(1.0 - t) + t * Vec3(0.5, 0.7, 1.0)

@@ -5,7 +5,7 @@ use rand::Rng;
 use rand::prelude::ThreadRng;
 
 fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
-    v.clone() - 2.0 * Vec3::dot(v,n) * n.clone()
+    *v - 2.0 * Vec3::dot(v,n) * *n
 }
 fn refract(v: &Vec3, n: &Vec3, ni_over_nt: f64) -> Option<Vec3> {
     let uv = Vec3::unit_vector(*v);
@@ -68,7 +68,7 @@ pub struct Metal {
 impl Metal {
     fn scatter(&self, ray_in: &Ray, record: &HitRecord, rng: &mut ThreadRng) -> (Vec3, Ray, bool) {
         let reflected = reflect(
-            &Vec3::unit_vector(ray_in.direction().clone()),
+            &Vec3::unit_vector(*ray_in.direction()),
             &record.normal
         );
 

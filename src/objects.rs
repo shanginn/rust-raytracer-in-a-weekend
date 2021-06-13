@@ -21,7 +21,7 @@ pub struct Sphere {
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let oc = ray.origin().clone() - self.center.clone();
+        let oc = *ray.origin() - self.center;
 
         let a = Vec3::dot(&ray.direction(), &ray.direction());
         let b = Vec3::dot(&oc, &ray.direction());
@@ -39,7 +39,7 @@ impl Hittable for Sphere {
                 return Some(HitRecord {
                     t: temp,
                     p: point,
-                    normal: (point - self.center.clone()) / self.radius,
+                    normal: (point - self.center) / self.radius,
                     material: self.material.clone(),
                 });
             }
@@ -52,7 +52,7 @@ impl Hittable for Sphere {
                 return Some(HitRecord {
                     t: temp,
                     p: point,
-                    normal: (point - self.center.clone()) / self.radius,
+                    normal: (point - self.center) / self.radius,
                     material: self.material.clone(),
                 });
             }
