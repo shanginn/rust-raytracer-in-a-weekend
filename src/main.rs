@@ -14,8 +14,8 @@ use crate::camera::Camera;
 use crate::scene::*;
 
 const WIDTH: usize = 1000;
-const HEIGHT: usize = 400;
-const RAYS: usize = 300;
+const HEIGHT: usize = 600;
+const RAYS: usize = 1000;
 const THREADS: usize = 12;
 
 fn main() {
